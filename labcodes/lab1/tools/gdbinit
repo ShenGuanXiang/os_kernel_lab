@@ -1,4 +1,14 @@
+file obj/sign/tools/sign.o
+file obj/bootblock.o
 file bin/kernel
+set architecture i8086
 target remote :1234
-break kern_init
+break lab1_switch_to_user
 continue
+# break *0x7c00
+# continue
+x/2i $pc
+set architecture i386
+layout src
+# layout split
+layout regs

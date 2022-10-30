@@ -106,7 +106,7 @@ serial_init(void) {
 
     // No modem controls
     outb(COM1 + COM_MCR, 0);
-    // Enable rcv interrupts
+    // Enable rcv interrupts，使能串口1接收字符后产生中断
     outb(COM1 + COM_IER, COM_IER_RDI);
 
     // Clear any preexisting overrun indications and interrupts
@@ -116,7 +116,7 @@ serial_init(void) {
     (void) inb(COM1+COM_RX);
 
     if (serial_exists) {
-        pic_enable(IRQ_COM1);
+        pic_enable(IRQ_COM1); // 通过中断控制器使能串口1中断
     }
 }
 
@@ -417,7 +417,7 @@ static void
 kbd_init(void) {
     // drain the kbd buffer
     kbd_intr();
-    pic_enable(IRQ_KBD);
+    pic_enable(IRQ_KBD); // 通过中断控制器使能键盘输入中断
 }
 
 /* cons_init - initializes the console devices */

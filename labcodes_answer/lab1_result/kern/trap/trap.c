@@ -156,7 +156,7 @@ trap_dispatch(struct trapframe *tf) {
         /* LAB1 YOUR CODE : STEP 3 */
         /* handle the timer interrupt */
         /* (1) After a timer interrupt, you should record this event using a global variable (increase it), such as ticks in kern/driver/clock.c
-         * (2) Every TICK_NUM cycle, you can print some info using a funciton, such as print_ticks().
+         * (2) Every TICK_NUM cycle, you can print some info using a function, such as print_ticks().
          * (3) Too Simple? Yes, I think so!
          */
         ticks ++;
