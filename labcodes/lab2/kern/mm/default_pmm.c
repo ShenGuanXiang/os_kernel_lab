@@ -4,7 +4,7 @@
 #include <default_pmm.h>
 
 /*  In the First Fit algorithm, the allocator keeps a list of free blocks
- * (known as the free list). Once receiving a allocation request for memory,
+ * (known as the free list). Once receiving an allocation request for memory,
  * it scans along the list for the first block that is large enough to satisfy
  * the request. If the chosen block is significantly larger than requested, it
  * is usually splitted, and the remainder will be added into the list as
@@ -52,7 +52,7 @@
  * (e.g.: `list_add_before(&free_list, &(p->page_link));` )
  *  Finally, we should update the sum of the free memory blocks: `nr_free += n`.
  * (4) `default_alloc_pages`:
- *  Search for the first free block (block size >= n) in the free list and reszie
+ *  Search for the first free block (block size >= n) in the free list and resize
  * the block found, returning the address of this block as the address required by
  * `malloc`.
  *  (4.1)
@@ -75,7 +75,7 @@
  *          pages of this free block. (e.g.: `le2page(le,page_link))->property
  *          = p->property - n;`)
  *          (4.1.3)
- *              Re-caluclate `nr_free` (number of the the rest of all free block).
+ *              Re-calculate `nr_free` (number of the the rest of all free block).
  *          (4.1.4)
  *              return `p`.
  *      (4.2)
@@ -116,7 +116,8 @@ default_init_memmap(struct Page *base, size_t n) {
     base->property = n;
     SetPageProperty(base);
     nr_free += n;
-    list_add(&free_list, &(base->page_link));
+    // list_add(&free_list, &(base->page_link));
+    list_add_before(&free_list, &(base->page_link)); // 需要保证空闲页块起始地址有序
 }
 
 static struct Page *
@@ -135,12 +136,16 @@ default_alloc_pages(size_t n) {
         }
     }
     if (page != NULL) {
-        list_del(&(page->page_link));
-        if (page->property > n) {
+        // list_del(&(page->page_link));
+        // 页块分裂
+        if (page->property > n) {   
             struct Page *p = page + n;
             p->property = page->property - n;
-            list_add(&free_list, &(p->page_link));
-    }
+            SetPageProperty(p); // 这时p指向的页是一个空闲页块的起始页
+            // list_add(&free_list, &(p->page_link));
+            list_add_after(&(page->page_link), &(p->page_link));  // p代替page在空闲链表中的位置，保证空闲页块起始地址有序
+        }
+        list_del(&(page->page_link));
         nr_free -= n;
         ClearPageProperty(page);
     }
@@ -158,14 +163,19 @@ default_free_pages(struct Page *base, size_t n) {
     }
     base->property = n;
     SetPageProperty(base);
+    // 页块合并
     list_entry_t *le = list_next(&free_list);
     while (le != &free_list) {
         p = le2page(le, page_link);
-        le = list_next(le);
+        assert(!(base < p && p < base + base->property));   // 要释放的页块不能与空闲页块有交叉
+        if (base + base->property < p)  // 再往后的空闲页块与 base 页块一定不相邻
+            break;
+        le = list_next(le); // 必须写在前面，因为后面可能会list_del(old_le)
         if (base + base->property == p) {
             base->property += p->property;
             ClearPageProperty(p);
             list_del(&(p->page_link));
+            break;  // 认为空闲链表的页块间维持不相邻的状态，所以最多向后合并一次
         }
         else if (p + p->property == base) {
             p->property += base->property;
@@ -175,7 +185,8 @@ default_free_pages(struct Page *base, size_t n) {
         }
     }
     nr_free += n;
-    list_add(&free_list, &(base->page_link));
+    // list_add(&free_list, &(base->page_link));
+    list_add_before(le, &(base->page_link));    // 前面 break 时 le 正好对应 base 的下一个页块的起始页
 }
 
 static size_t

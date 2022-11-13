@@ -11,15 +11,15 @@
 // only needs to implement the methods in pmm_manager class, then XXX_pmm_manager can be used
 // by ucore to manage the total physical memory space.
 struct pmm_manager {
-    const char *name;                                 // XXX_pmm_manager's name
-    void (*init)(void);                               // initialize internal description&management data structure
+    const char *name;                                 // XXX_pmm_manager's name 物理内存页管理器的名字
+    void (*init)(void);                               // initialize internal description&management data structure 初始化内存管理器
                                                       // (free block list, number of free block) of XXX_pmm_manager 
-    void (*init_memmap)(struct Page *base, size_t n); // setup description&management data structcure according to
+    void (*init_memmap)(struct Page *base, size_t n); // setup description&management data structcure according to 初始化管理空闲内存页的数据结构
                                                       // the initial free physical memory space 
-    struct Page *(*alloc_pages)(size_t n);            // allocate >=n pages, depend on the allocation algorithm 
-    void (*free_pages)(struct Page *base, size_t n);  // free >=n pages with "base" addr of Page descriptor structures(memlayout.h)
-    size_t (*nr_free_pages)(void);                    // return the number of free pages 
-    void (*check)(void);                              // check the correctness of XXX_pmm_manager 
+    struct Page *(*alloc_pages)(size_t n);            // allocate >=n pages, depend on the allocation algorithm 分配n个物理内存页
+    void (*free_pages)(struct Page *base, size_t n);  // free >=n pages with "base" addr of Page descriptor structures(memlayout.h) 释放n个物理内存页
+    size_t (*nr_free_pages)(void);                    // return the number of free pages 返回当前剩余的空闲页数
+    void (*check)(void);                              // check the correctness of XXX_pmm_manager 用于检测分配/释放实现是否正确的辅助函数
 };
 
 extern const struct pmm_manager *pmm_manager;

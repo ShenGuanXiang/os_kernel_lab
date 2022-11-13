@@ -28,7 +28,7 @@ start:
     #  1MB wrap around to zero by default. This code undoes this.
 seta20.1:
     inb $0x64, %al                                  # Wait for not busy(8042 input buffer empty).
-    testb $0x2, %al                                 # Status Register（0x64端口) 的 bit1 代表 input register (60h/64h) 有数据
+    testb $0x2, %al                                 # Status Register (0x64端口) 的 bit1 代表 input register (60h/64h) 有数据
     jnz seta20.1
     # 向键盘输入缓冲器(0x64端口)写一个控制命令(0xd1)
     movb $0xd1, %al                                 # 0xd1 -> port 0x64

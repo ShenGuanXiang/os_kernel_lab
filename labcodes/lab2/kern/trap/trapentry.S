@@ -10,7 +10,7 @@ __alltraps:
     pushl %es
     pushl %fs
     pushl %gs
-    pushal
+    pushal                # Push EAX, ECX, EDX, EBX, original ESP, EBP, ESI, and EDI.
 
     # load GD_KDATA into %ds and %es to set up data segments for kernel
     movl $GD_KDATA, %eax
@@ -40,5 +40,5 @@ __trapret:
 
     # get rid of the trap number and error code
     addl $0x8, %esp
-    iret
+    iret                 # 恢复 cs、eflag以及 eip
 

@@ -88,7 +88,7 @@ struct e820map {
         uint64_t addr;
         uint64_t size;
         uint32_t type;
-    } __attribute__((packed)) map[E820MAX];
+    } __attribute__((packed)) map[E820MAX]; // __attribute__((packed)) : 让结构体在内存中紧凑排列，无需字节对齐
 };
 
 /* *

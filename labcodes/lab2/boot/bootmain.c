@@ -40,18 +40,18 @@ waitdisk(void) {
         /* do nothing */;
 }
 
-/* readsect - read a single sector at @secno into @dst */
+/* readsect - read a single sector at @secno into @dst，bootloader的访问硬盘都是LBA模式的PIO（Program IO）方式，即所有的IO操作是通过CPU访问硬盘的IO地址寄存器完成。 */
 static void
 readsect(void *dst, uint32_t secno) {
     // wait for disk to be ready
     waitdisk();
-
-    outb(0x1F2, 1);                         // count = 1
-    outb(0x1F3, secno & 0xFF);
-    outb(0x1F4, (secno >> 8) & 0xFF);
-    outb(0x1F5, (secno >> 16) & 0xFF);
-    outb(0x1F6, ((secno >> 24) & 0xF) | 0xE0);
-    outb(0x1F7, 0x20);                      // cmd 0x20 - read sectors
+    // 发出读取扇区的命令
+    outb(0x1F2, 1);                            // count = 1，读一个扇区
+    outb(0x1F3, secno & 0xFF);                 // LBA参数的0-7位
+    outb(0x1F4, (secno >> 8) & 0xFF);          // LBA参数的8-15位
+    outb(0x1F5, (secno >> 16) & 0xFF);         // LBA参数的16-23位
+    outb(0x1F6, ((secno >> 24) & 0xF) | 0xE0); // 第0~3位是LBA模式的24-27位;第4位为0，代表主盘;第6位：为1=LBA模式(0 = CHS模式);第7位和第5位必须为1
+    outb(0x1F7, 0x20);                         // cmd 0x20 - read sectors
 
     // wait for disk to be ready
     waitdisk();

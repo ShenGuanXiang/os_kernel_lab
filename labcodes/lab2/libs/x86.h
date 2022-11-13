@@ -60,11 +60,13 @@ inb(uint16_t port) {
 static inline void
 insl(uint32_t port, void *addr, int cnt) {
     asm volatile (
-        "cld;"
-        "repne; insl;"
-        : "=D" (addr), "=c" (cnt)
-        : "d" (port), "0" (addr), "1" (cnt)
-        : "memory", "cc");
+            "cld;"                                  // cld指每次串操作，自动增加指针寄存器(di,si)寄存器值
+            "repne; insl;"                          // repne是重复执行接下来的insl指令，重复次数由ecx寄存器决定。insl就是从指定端口读取4字节长度的串操作。
+            : "=D" (addr), "=c" (cnt)               // 输出寄存器是di(输出给addr变量), ecx(输出给cnt变量)
+            : "d" (port), "0" (addr), "1" (cnt)     // 输入寄存器是edx(初始值由port变量提供)， di（初始值由addr变量提供)， ecx(初始值由cnt变量提供)
+            : "memory", "cc");                      // When you do the clobber list, you specify the registers as above with the %. 
+                                                    // If you write to a variable, you must include "memory" as one of The Clobbered. This is in case you wrote to a variable that GCC thought it had in a register. This is the same as clobbering all registers. 
+                                                    // While I've never run into a problem with it, you might also want to add "cc" as a clobber if you change the condition codes (the bits in the flags register the jnz, je, etc. operators look at.)
 }
 
 static inline void
@@ -87,6 +89,7 @@ outsl(uint32_t port, const void *addr, int cnt) {
         : "memory", "cc");
 }
 
+// read_ebp必须定义为inline函数，否则获取的是执行read_ebp函数时的ebp寄存器的值
 static inline uint32_t
 read_ebp(void) {
     uint32_t ebp;
