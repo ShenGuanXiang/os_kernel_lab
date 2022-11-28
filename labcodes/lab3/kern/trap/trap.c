@@ -48,6 +48,18 @@ idt_init(void) {
       *     You don't know the meaning of this instruction? just google it! and check the libs/x86.h to know more.
       *     Notice: the argument of lidt is idt_pd. try to find it!
       */
+    // (1)
+    extern uintptr_t __vectors[];
+    // (2)
+    int i;
+    for (i = 0; i < sizeof(idt) / sizeof(struct gatedesc); i ++) {
+        SETGATE(idt[i], 0, KERNEL_CS, __vectors[i], DPL_KERNEL); // trapno = i, gd_type = Interrupt-gate descriptor, DPL = 0
+    }
+	// 系统调用中断
+    SETGATE(idt[T_SYSCALL], 1, KERNEL_CS, __vectors[T_SYSCALL], DPL_USER); // trapno = T_SYSCALL = 0x80，gd_type = Trap-gate descriptor，DPL = 3
+    SETGATE(idt[T_SWITCH_TOK], 1, KERNEL_CS, __vectors[T_SWITCH_TOK], DPL_USER);
+	// (3)
+    lidt(&idt_pd);
 }
 
 static const char *
@@ -162,6 +174,7 @@ pgfault_handler(struct trapframe *tf) {
 static volatile int in_swap_tick_event = 0;
 extern struct mm_struct *check_mm_struct;
 
+/* trap_dispatch - dispatch based on what type of trap occurred */
 static void
 trap_dispatch(struct trapframe *tf) {
     char c;
@@ -182,10 +195,14 @@ trap_dispatch(struct trapframe *tf) {
 #endif
         /* LAB1 YOUR CODE : STEP 3 */
         /* handle the timer interrupt */
-        /* (1) After a timer interrupt, you should record this event using a global variable (increase it), such as ticks in kern/driver/clock.c
-         * (2) Every TICK_NUM cycle, you can print some info using a funciton, such as print_ticks().
+        /* (1) After a timer interrupt, you should record this event using a gobal variable (increase it), such as ticks in kern/driver/clock.c
+         * (2) Every TICK_NUM cycle, you can print some info using a function, such as print_ticks().
          * (3) Too Simple? Yes, I think so!
          */
+        ticks ++; // (1)
+        if (ticks % TICK_NUM == 0) {
+            print_ticks(); // (2)
+        }
         break;
     case IRQ_OFFSET + IRQ_COM1:
         c = cons_getc();
@@ -194,11 +211,44 @@ trap_dispatch(struct trapframe *tf) {
     case IRQ_OFFSET + IRQ_KBD:
         c = cons_getc();
         cprintf("kbd [%03d] %c\n", c, c);
+        if(c == '0' && (tf->tf_cs & 3) != 0)
+        {
+                cprintf("Input 0......switch to kernel\n");
+                tf->tf_cs = KERNEL_CS;
+                tf->tf_ds = tf->tf_es = KERNEL_DS;
+                tf->tf_eflags &= ~FL_IOPL_MASK;
+        }
+        else if (c == '3' && (tf->tf_cs & 3) != 3)
+        {
+                cprintf("Input 3......switch to user\n");
+                tf->tf_cs = USER_CS;
+                tf->tf_ds = tf->tf_es = tf->tf_ss = USER_DS;
+                tf->tf_eflags |= FL_IOPL_MASK;
+        }
         break;
     //LAB1 CHALLENGE 1 : YOUR CODE you should modify below codes.
-    case T_SWITCH_TOU:
-    case T_SWITCH_TOK:
-        panic("T_SWITCH_** ??\n");
+ 	case T_SWITCH_TOU:
+        if(tf->tf_cs != USER_CS)	//检查是不是用户态，不是就操作
+        {
+                cprintf("Switch to user\n");
+                // 设置用户态对应的cs,ds,es,ss四个寄存器
+            	tf->tf_cs = USER_CS;
+                tf->tf_ds = tf->tf_es = tf->tf_ss = USER_DS;
+                // 降低IO权限，使用户态可以使用IO
+                tf->tf_eflags |= FL_IOPL_MASK;
+        }
+        break;
+
+	case T_SWITCH_TOK:
+        if(tf->tf_cs != KERNEL_CS)	//检查是不是内核态，不是就操作
+        {          
+                cprintf("Switch to kernel\n");
+            	// 设置内核态对应的cs,ds,es三个寄存器
+                tf->tf_cs = KERNEL_CS;
+                tf->tf_ds = tf->tf_es = KERNEL_DS;
+				// 用户态不再能使用I/O
+                tf->tf_eflags &= ~FL_IOPL_MASK;
+        }
         break;
     case IRQ_OFFSET + IRQ_IDE1:
     case IRQ_OFFSET + IRQ_IDE2:

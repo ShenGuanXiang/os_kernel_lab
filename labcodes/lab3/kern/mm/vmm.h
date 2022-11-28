@@ -22,9 +22,9 @@ struct vma_struct {
 #define le2vma(le, member)                  \
     to_struct((le), struct vma_struct, member)
 
-#define VM_READ                 0x00000001
-#define VM_WRITE                0x00000002
-#define VM_EXEC                 0x00000004
+#define VM_READ                 0x00000001  // 只读
+#define VM_WRITE                0x00000002  // 可读写
+#define VM_EXEC                 0x00000004  // 可执行
 
 // the control struct for a set of vma using the same PDT
 struct mm_struct {
@@ -32,7 +32,7 @@ struct mm_struct {
     struct vma_struct *mmap_cache; // current accessed vma, used for speed purpose
     pde_t *pgdir;                  // the PDT of these vma
     int map_count;                 // the count of these vma
-    void *sm_priv;                   // the private data for swap manager
+    void *sm_priv;                 // the private data for swap manager
 };
 
 struct vma_struct *find_vma(struct mm_struct *mm, uintptr_t addr);

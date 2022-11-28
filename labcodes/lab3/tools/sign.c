@@ -10,12 +10,12 @@ main(int argc, char *argv[]) {
         fprintf(stderr, "Usage: <input filename> <output filename>\n");
         return -1;
     }
-    if (stat(argv[1], &st) != 0) {
+    if (stat(argv[1], &st) != 0) { // 获取文件信息
         fprintf(stderr, "Error opening file '%s': %s\n", argv[1], strerror(errno));
         return -1;
     }
     printf("'%s' size: %lld bytes\n", argv[1], (long long)st.st_size);
-    if (st.st_size > 510) {
+    if (st.st_size > 510) { // 限制1：输入字节数<=510
         fprintf(stderr, "%lld >> 510!!\n", (long long)st.st_size);
         return -1;
     }
@@ -29,7 +29,7 @@ main(int argc, char *argv[]) {
     }
     fclose(ifp);
     buf[510] = 0x55;
-    buf[511] = 0xAA;
+    buf[511] = 0xAA; // 限制2：最后两个字节为0x55AA
     FILE *ofp = fopen(argv[2], "wb+");
     size = fwrite(buf, 1, 512, ofp);
     if (size != 512) {
