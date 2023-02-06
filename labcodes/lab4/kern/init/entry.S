@@ -6,6 +6,7 @@
 .text
 .globl kern_entry
 kern_entry:
+# kern_entry函数的主要任务是为执行kern_init建立一个良好的C语言运行环境（设置堆栈），而且临时建立了一个段映射关系，为之后建立分页机制的过程做一个准备
     # load pa of boot pgdir
     movl $REALLOC(__boot_pgdir), %eax
     movl %eax, %cr3

@@ -95,7 +95,7 @@ static inline void __slob_free_pages(unsigned long kva, int order)
 
 static void slob_free(void *b, int size);
 
-static void *slob_alloc(size_t size, gfp_t gfp, int align)
+static void *first_fit_alloc(size_t size, gfp_t gfp, int align)
 {
   assert( (size + SLOB_UNIT) < PAGE_SIZE );
 
@@ -148,6 +148,79 @@ static void *slob_alloc(size_t size, gfp_t gfp, int align)
 			cur = slobfree;
 		}
 	}
+}
+
+static void *best_fit_alloc(size_t size, gfp_t gfp, int align)
+{
+    assert( (size + SLOB_UNIT) < PAGE_SIZE );
+	bool room_enough = 0;
+	int min_fit_units = __INT_MAX__;
+	slob_t *prev, *cur, *aligned = 0, *temp_best = NULL,*temp_best_prev=NULL;
+	int delta = 0, units = SLOB_UNITS(size);
+	unsigned long flags;
+
+	spin_lock_irqsave(&slob_lock, flags);
+	prev = slobfree;
+	for (cur = prev->next; ; prev = cur, cur = cur->next) {
+		if (align) {
+			aligned = (slob_t *)ALIGN((unsigned long)cur, align);
+			delta = aligned - cur;
+		}
+		if (cur->units >= units + delta) {
+			if(cur->units == units + delta){/* exact fit? */
+				if (delta) { /* need to fragment head to align? */
+					aligned->units = cur->units - delta;
+					aligned->next = cur->next;
+					cur->next = aligned;
+					cur->units = delta;
+					prev = cur;
+					cur = aligned;
+				}
+				prev->next = cur->next; /* unlink */
+				slobfree = prev;
+				spin_unlock_irqrestore(&slob_lock, flags);
+				return cur;
+			}else{
+				if(cur->units-units<min_fit_units){
+					min_fit_units = cur->units-units;
+					temp_best = cur;
+					temp_best_prev = prev;
+					room_enough = 1;
+				}
+			}
+		}
+		if (cur == slobfree) {
+			/*donnot find an exact best fit*/
+			if(room_enough){
+				temp_best_prev->next = temp_best + units;
+				temp_best_prev->next->units = min_fit_units;
+				temp_best_prev->next->next = temp_best->next;
+				temp_best->units=units;
+				slobfree = temp_best_prev;
+				spin_unlock_irqrestore(&slob_lock, flags);
+				return temp_best;
+			}
+			spin_unlock_irqrestore(&slob_lock, flags);
+			
+			if (size == PAGE_SIZE) /* trying to shrink arena? */
+				return 0;
+
+			cur = (slob_t *)__slob_get_free_page(gfp);
+			if (!cur)
+				return 0;
+
+			slob_free(cur, PAGE_SIZE);
+			spin_lock_irqsave(&slob_lock, flags);
+			cur = slobfree;
+		}
+	}
+
+}
+
+static void *slob_alloc(size_t size, gfp_t gfp, int align)
+{
+	return best_fit_alloc(size, gfp, align);
+	//return first_fit_alloc(size, gfp, align);
 }
 
 static void slob_free(void *block, int size)

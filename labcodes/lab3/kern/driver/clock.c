@@ -33,6 +33,7 @@ void
 clock_init(void) {
     // set 8253 timer-chip
     outb(TIMER_MODE, TIMER_SEL0 | TIMER_RATEGEN | TIMER_16BIT);
+    // 设置时钟每秒中断100次
     outb(IO_TIMER1, TIMER_DIV(100) % 256);
     outb(IO_TIMER1, TIMER_DIV(100) / 256);
 
@@ -40,6 +41,5 @@ clock_init(void) {
     ticks = 0;
 
     cprintf("++ setup timer interrupts\n");
-    pic_enable(IRQ_TIMER);
+    pic_enable(IRQ_TIMER); // 通过中断控制器使能时钟中断
 }
-

@@ -44,7 +44,7 @@ struct swap_manager
      /* When a page is marked as shared, this routine is called to
       * delete the addr entry from the swap manager */
      int (*set_unswappable) (struct mm_struct *mm, uintptr_t addr);
-     /* Try to swap out a page, return then victim */
+     /* Try to swap out a page, return the victim */
      int (*swap_out_victim) (struct mm_struct *mm, struct Page **ptr_page, int in_tick);
      /* check the page relpacement algorithm */
      int (*check_swap)(void);     

@@ -22,9 +22,9 @@ struct vma_struct {
 #define le2vma(le, member)                  \
     to_struct((le), struct vma_struct, member)
 
-#define VM_READ                 0x00000001
-#define VM_WRITE                0x00000002
-#define VM_EXEC                 0x00000004
+#define VM_READ                 0x00000001  // 只读
+#define VM_WRITE                0x00000002  // 可读写
+#define VM_EXEC                 0x00000004  // 可执行
 
 // the control struct for a set of vma using the same PDT
 struct mm_struct {
